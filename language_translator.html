@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Translator</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #b3cde3;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #1c2526;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+        }
+
+        .translator-box {
+            background-color: #191970;
+            padding: 20px;
+            border-radius: 50px;
+            box-shadow: 0 10px 4px hsla(0, 96%, 47%, 0.1);
+        }
+
+        .language-selector {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .language-selector label {
+            font-weight: bold;
+            font-size: 18px;
+            color: white;
+        }
+
+        .language-selector select {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 25px;
+            border: 3px solid #0056b3;
+            background-color: #87cee8;
+            min-width: 120px;
+        }
+
+        .text-areas {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            font-size: 16px;
+            border: 3px solid #0056b3;
+            border-radius: 25px;
+            resize: vertical;
+            background-color: #87cee8;
+            box-sizing: border-box;
+        }
+
+        textarea.error {
+            border-color: #ff4444;
+        }
+
+        textarea[readonly] {
+            background-color: #e6f3ff;
+            cursor: not-allowed;
+        }
+
+        #translate-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: #000000;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #translate-button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+
+        #translate-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #ff4444 !important;
+            background-color: #ffe6e6 !important;
+        }
+
+        @media (max-width: 600px) {
+            .text-areas {
+                flex-direction: column;
+            }
+            
+            .language-selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .language-selector select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Language Translator</h1>
+
+    <div class="container">
+        <div class="translator-box">
+            <form id="translator-form">
+                <div class="language-selector">
+                    <div>
+                        <label for="from_lang">From:</label>
+                        <select id="from_lang" required>
+                            <option value="">Select Language</option>
+                            <option value="en">English</option>
+                            <option value="fr">French</option>
+                            <option value="es">Spanish</option>
+                            <option value="sw">Swahili</option>
+                            <option value="de">German</option>
+                            <option value="it">Italian</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ru">Russian</option>
+                            <option value="zh-CN">Chinese (Simplified)</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="ar">Arabic</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="to_lang">To:</label>
+                        <select id="to_lang" required>
+                            <option value="">Select Language</option>
+                            <option value="en">English</option>
+                            <option value="fr">French</option>
+                            <option value="es">Spanish</option>
+                            <option value="sw">Swahili</option>
+                            <option value="de">German</option>
+                            <option value="it">Italian</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ru">Russian</option>
+                            <option value="zh-CN">Chinese (Simplified)</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="ar">Arabic</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="text-areas">
+                    <textarea 
+                        id="source_text" 
+                        placeholder="Enter text to translate..." 
+                        maxlength="5000"
+                        required>
+                    </textarea>
+                    
+                    <textarea 
+                        id="translated_text" 
+                        placeholder="Translation will appear here..." 
+                        readonly>
+                    </textarea>
+                </div>
+
+                <button type="submit" id="translate-button">Translate</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Wait for the HTML document to be fully loaded before running the script
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // Get references to form elements
+            const form = document.getElementById('translator-form');
+            const translateBtn = document.getElementById('translate-button');
+            const inputText = document.getElementById('source_text');
+            const translatedTextArea = document.getElementById('translated_text');
+            const sourceLanguageSelect = document.getElementById('from_lang');
+            const targetLanguageSelect = document.getElementById('to_lang');
+
+            // Async function that tries translation using multiple APIs
+            async function tryTranslation(text, sourceLang, targetLang) {
+                const apis = [
+                    // API 1: MyMemory API (more reliable, no CORS issues)
+                    {
+                        name: 'MyMemory',
+                        url: `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`,
+                        method: 'GET'
+                    },
+                    // API 2: Google Translate alternative (if first fails)
+                    {
+                        name: 'LibreTranslate',
+                        url: 'https://libretranslate.com/translate',
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ 
+                            q: text, 
+                            source: sourceLang === 'zh-CN' ? 'zh' : sourceLang, 
+                            target: targetLang === 'zh-CN' ? 'zh' : targetLang,
+                            format: 'text'
+                        })
+                    }
+                ];
+
+                let lastError = null;
+
+                // Try each API in sequence until one succeeds
+                for (let api of apis) {
+                    try {
+                        console.log(`Trying ${api.name} API...`);
+                        
+                        const fetchOptions = {
+                            method: api.method || 'GET',
+                            headers: api.headers || {},
+                        };
+                        
+                        if (api.body) {
+                            fetchOptions.body = api.body;
+                        }
+
+                        const response = await fetch(api.url, fetchOptions);
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+
+                        const data = await response.json();
+                        console.log(`${api.name} response:`, data);
+
+                        // Handle different API response formats
+                        let translatedText = null;
+                        
+                        if (api.name === 'MyMemory') {
+                            if (data.responseData && data.responseData.translatedText) {
+                                translatedText = data.responseData.translatedText;
+                            }
+                        } else if (api.name === 'LibreTranslate') {
+                            if (data.translatedText) {
+                                translatedText = data.translatedText;
+                            }
+                        }
+
+                        if (translatedText) {
+                            console.log(`Successfully translated with ${api.name}`);
+                            return translatedText;
+                        } else {
+                            throw new Error('No translation found in response');
+                        }
+
+                    } catch (error) {
+                        console.warn(`${api.name} API failed:`, error.message);
+                        lastError = error;
+                    }
+                }
+
+                // If all APIs fail, throw the last error
+                throw new Error(`All translation APIs failed. Last error: ${lastError?.message || 'Unknown error'}`);
+            }
+
+            // Show loading spinner during translation
+            function showSpinner() {
+                translatedTextArea.value = '';
+                translatedTextArea.placeholder = '🔄 Translating...';
+                translatedTextArea.style.fontStyle = 'italic';
+            }
+
+            // Show error message
+            function showError(message) {
+                translatedTextArea.classList.add('error');
+                translatedTextArea.value = '';
+                translatedTextArea.placeholder = `❌ Error: ${message}`;
+                translatedTextArea.style.fontStyle = 'italic';
+            }
+
+            // Reset error styles
+            function resetStyles() {
+                inputText.classList.remove('error');
+                translatedTextArea.classList.remove('error');
+                translatedTextArea.style.fontStyle = 'normal';
+                translatedTextArea.placeholder = 'Translation will appear here...';
+            }
+
+            // Handle form submission
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault(); // Prevent form from refreshing page
+                resetStyles();
+
+                const textToTranslate = inputText.value.trim();
+                const sourceLang = sourceLanguageSelect.value;
+                const targetLang = targetLanguageSelect.value;
+
+                // Input validation
+                if (!textToTranslate) {
+                    inputText.classList.add('error');
+                    showError('Please enter text to translate.');
+                    return;
+                }
+
+                if (!sourceLang || !targetLang) {
+                    showError('Please select both source and target languages.');
+                    return;
+                }
+
+                if (sourceLang === targetLang) {
+                    showError('Source and target languages must be different.');
+                    return;
+                }
+
+                // Try to perform translation
+                try {
+                    showSpinner();
+                    translateBtn.disabled = true;
+
+                    const translatedText = await tryTranslation(textToTranslate, sourceLang, targetLang);
+                    
+                    translatedTextArea.classList.remove('error');
+                    translatedTextArea.value = translatedText;
+                    translatedTextArea.placeholder = 'Translation will appear here...';
+                    
+                } catch (error) {
+                    console.error('Translation error:', error);
+                    showError('Translation failed. Please check your internet connection and try again.');
+                } finally {
+                    translateBtn.disabled = false;
+                }
+            });
+
+            // Add swap languages functionality
+            const swapButton = document.createElement('button');
+            swapButton.type = 'button';
+            swapButton.innerHTML = '⇄';
+            swapButton.style.cssText = `
+                background: #007bff;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+                cursor: pointer;
+                margin: 0 10px;
+            `;
+            swapButton.title = 'Swap languages';
+            
+            swapButton.addEventListener('click', function() {
+                const fromValue = sourceLanguageSelect.value;
+                const toValue = targetLanguageSelect.value;
+                const sourceText = inputText.value;
+                const translatedText = translatedTextArea.value;
+                
+                // Swap language selections
+                sourceLanguageSelect.value = toValue;
+                targetLanguageSelect.value = fromValue;
+                
+                // Swap text content
+                inputText.value = translatedText;
+                translatedTextArea.value = sourceText;
+            });
+            
+            // Insert swap button between language selectors
+            const languageSelector = document.querySelector('.language-selector');
+            languageSelector.style.alignItems = 'center';
+            languageSelector.insertBefore(swapButton, languageSelector.children[1]);
+        });
+    </script>
+</body>
+
+</html>
